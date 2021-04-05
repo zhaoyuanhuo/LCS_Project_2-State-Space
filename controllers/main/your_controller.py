@@ -44,8 +44,16 @@ class CustomController(BaseController):
         self.sum_error_psi = 0.0
         self.error_psi_old = 0.0
 
-        self.long_look_ahead = 500
+        self.long_look_ahead = 600
         self.lat_look_ahead = 80
+
+        # lateral
+        self.x_est = np.array([[0], [0], [0], [0]])
+        self.delta = 0.0
+        self.F = 0.0
+
+        self.Ko = np.array([[387, 37236, 9.48, 1875], [12, 2596, 390, 37793]])
+        self.Kc = np.array([[4603, 1026, -19741, -6602], [0.0, 0.0, 0.0, 0.0]])
 
     def inertial2global(self, x, y, psi):
         # convert (x, y) from inertial frame to global frame
@@ -95,105 +103,63 @@ class CustomController(BaseController):
         long_look_ahead = self.long_look_ahead
         lat_look_ahead = self.lat_look_ahead
         XTE, nn_idx = closestNode(X, Y, trajectory)
-
-        # average filtering
-        X_next_ref = 0.0
-        Y_next_ref = 0.0
-        for id_add_temp in range(200):
-            idx_curr = nn_idx + id_add_temp
-            if idx_curr >= len(trajectory) - 1:
-                idx_curr = len(trajectory) - 1
-            X_next_ref += trajectory[idx_curr][0]
-            Y_next_ref += trajectory[idx_curr][1]
-        X_next_ref /= 200
-        Y_next_ref /= 200
+        nn_lat_next_idx = nn_idx + lat_look_ahead
+        if nn_lat_next_idx >= len(trajectory) - 1:
+            # print("lat near end")
+            nn_lat_next_idx = len(trajectory) - 1
+        X_next_ref = trajectory[nn_lat_next_idx][0]
+        Y_next_ref = trajectory[nn_lat_next_idx][1]
         psi_ref = math.atan2(Y_next_ref - Y, X_next_ref - X)
-
-        
         speed_scale = 1.1
-        longi_scale = 1.0
 
+        # longitude lookahead
+        #   1. comparing with current psi, to determine if there is a curb ahead
+        #   2. generate reference xdot, for longitudinal controller
         nn_long_next_idx = nn_idx + long_look_ahead
         if nn_long_next_idx >= len(trajectory) - 1:
-            # print("longi near end")
-            # longi_scale = 10.0
             long_look_ahead = len(trajectory) - 1 - nn_idx
             nn_long_next_idx = len(trajectory) - 1
         X_long_next_ref = trajectory[nn_long_next_idx][0]
         Y_long_next_ref = trajectory[nn_long_next_idx][1]
         Xdot_ref = (X_long_next_ref - X) / (delT * long_look_ahead)
         Ydot_ref = (Y_long_next_ref - Y) / (delT * long_look_ahead)
-        xdot_ref, ydot_ref = self.global2inertial(Xdot_ref, Ydot_ref, psi)
-
-        # straight line boost
+        xdot_ref, _ = self.global2inertial(Xdot_ref, Ydot_ref, psi)
         psi_long_ref = math.atan2(Y_long_next_ref - Y, X_long_next_ref - X)
         error_psi_long = self.wrapAngle(psi_long_ref) - self.wrapAngle(psi)
-        if np.abs(error_psi_long) < 20 * math.pi / 180:  # straight
-            # print("straight!")
-            longi_scale = 4.0
-            self.kd_x = 5.0
 
-            self.kp_psi = 5.0
-            self.kd_psi = 0.75
-            self.lat_look_ahead = 30
-            self.long_look_ahead = 600
-        elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
-            # print("small angle is", np.abs(error_psi_long))
+        # generate error state for lateral controller
+        sys_A = np.array([[0, 1, 0, 0],
+                          [0, -160/(9*xdot), 160/9, 308/(15*xdot)],
+                          [0, 0, 0, 1],
+                          [0, 3.12942/xdot, -3.12942, -16.31432]])
+        sys_B = np.array([[0, 0],
+                          [8.888889, 0],
+                          [0, 0,],
+                          [1.368276, 0]])
+        sys_C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
+        sys_control = np.array([[self.delta], [self.F]])
+        sys_output = np.array([[XTE], [psi - psi_ref]]) # y: observation
 
-            longi_scale = 3.0
+        x_est_dot = sys_A * self.x_est + sys_B * sys_control + self.Ko*(sys_output-sys_C*self.x_est)
+        self.x_est += delT * x_est_dot
+        sys_control_next = - self.Kc * self.x_est
+        delta = sys_control_next[0][0]
 
-            self.kd_x = 100.0
-
-            self.kp_psi = 30.0
-            self.kd_psi = 5.0
-            self.lat_look_ahead = 75
-            self.long_look_ahead = 600
-        elif np.abs(error_psi_long) < 45 * math.pi / 180:  # curb
-            # print("median angle is", np.abs(error_psi_long))
-
-            longi_scale = 0.8
-
-            self.kd_x = 50.0
-
-            self.kp_psi = 100.0
-            self.kd_psi = 5.0
-            self.lat_look_ahead = 150
-            self.long_look_ahead = 600
-        elif np.abs(error_psi_long) < 85 * math.pi / 180:  # curb
-            # print("large angle is", np.abs(error_psi_long))
-            longi_scale = 0.7
-
-            self.kd_x = 5.0
-
-            self.kp_psi = 400.0
-            self.ki_psi = 10.0
-            self.kd_psi = 5.0
-            self.lat_look_ahead = 180
-            self.long_look_ahead = 600
-        else:
-            # print("super large angle is", np.abs(error_psi_long))
-            longi_scale = 0.7
-
-            self.kd_x = 5.0
-
-            self.kp_psi = 400.0
-            self.ki_psi = 20.0
-            self.kd_psi = 5.0
-            self.lat_look_ahead = 200
-            self.long_look_ahead = 600
+        # state machine
+        self.lat_look_ahead = (2.6 * np.abs(error_psi_long) - 21.0) * math.pi / 180
 
         # ---------------|Lateral Controller|-------------------------
         """
         Please design your lateral controller below.
         """
-        error_psi = self.wrapAngle(psi_ref) - self.wrapAngle(psi)
-        self.sum_error_x += error_psi * delT
-        delta = self.kp_psi * error_psi + \
-                self.ki_psi * self.sum_error_psi + \
-                self.kd_psi * (error_psi - self.error_psi_old) / delT
-
-        delta = clamp(delta, self.delta_min, self.delta_max)
-        self.error_psi_old = error_psi
+        # error_psi = self.wrapAngle(psi_ref) - self.wrapAngle(psi)
+        # self.sum_error_x += error_psi * delT
+        # delta = self.kp_psi * error_psi + \
+        #         self.ki_psi * self.sum_error_psi + \
+        #         self.kd_psi * (error_psi - self.error_psi_old) / delT
+        #
+        # delta = clamp(delta, self.delta_min, self.delta_max)
+        # self.error_psi_old = error_psi
 
         # ---------------|Longitudinal Controller|-------------------------
         """
@@ -205,11 +171,14 @@ class CustomController(BaseController):
             self.ki_x * self.sum_error_x + \
             self.kd_x * (error_x - self.error_x_old) / delT
         F = clamp(F, self.F_min, self.F_max)
-        # print("longi force: ", F, "XTE= ", XTE)
-        self.error_x_old = error_x
+        # # print("longi force: ", F, "XTE= ", XTE)
+        # self.error_x_old = error_x
         # print("ref v= ", xdot_ref, "; real v= ", xdot)
         # print("ref angle= ", psi_ref, "; real angle= ", psi)
         # print("lateral angle= ", delta, "; longi force= ", F, "; XTE= ", XTE)
 
         # Return all states and calculated control inputs (F, delta)
+
+        self.delta = delta
+        self.F = F
         return X, Y, xdot, ydot, psi, psidot, F, delta
