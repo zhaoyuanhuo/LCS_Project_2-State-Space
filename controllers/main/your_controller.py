@@ -48,28 +48,20 @@ class CustomController(BaseController):
         self.lat_look_ahead = 80
 
         # lateral
-        self.x_est = np.array([[0.0],
-                               [0.0],
-                               [0.0],
-                               [0.0]])
+        self.track_center = np.average(trajectory, axis=0)
+
+        self.error_state = np.array([[0.0], [0.0], [0.0], [0.0]])
         self.delta = 0.0
         self.F = 0.0
-
-        # self.Ko = np.array([[387.4, 11.8987],
-        #                     [37235.6, 2596.4],
-        #                     [9.4773, 390.3],
-        #                     [1875.2, 37792.6]])
         # self.Kc = np.array([[4603.0, 1026.0, -19741.0, -6602.0],
         #                     [0.0, 0.0, 0.0, 0.0]])
-
-        self.Ko = np.array([[379.484, 23.695],
-                            [338.779, 86.207],
-                            [11.898, 377.788],
-                            [257.402, 333.149]])
-        self.Kc = np.array([[0.4628, 0.32255, 4.5653, 2.8211],
+        # self.Kc = np.array([[0.0205, 0.113366, -0.891, -0.0588],
+        #                     [0.0, 0.0, 0.0, 0.0]])
+        self.Kc = np.array([[0.00087166, 0.085707, -1.17545, -0.53692],
                             [0.0, 0.0, 0.0, 0.0]])
 
-    def inertial2global(self, x, y, psi):
+
+    def inertial2global(self, x, y, psi_):
         # convert (x, y) from inertial frame to global frame
         # psi_ = wrapToPi(psi)
         xy_inertial = np.array([[x],
@@ -115,6 +107,7 @@ class CustomController(BaseController):
         # preprocessing the reference trajectory
         # lateral preprocessing
         long_look_ahead = self.long_look_ahead
+        ### !!! change this
         lat_look_ahead = self.lat_look_ahead
         XTE, nn_idx = closestNode(X, Y, trajectory)
         nn_lat_next_idx = nn_idx + lat_look_ahead
@@ -173,30 +166,38 @@ class CustomController(BaseController):
         Please design your lateral controller below.
         """
         # generate error state for lateral controller
-        sys_A = np.array([[0.0, 1.0, 0.0, 0.0],
-                          [0.0, -160/(9*xdot), 160/9, 308/(15*xdot)],
-                          [0.0, 0.0, 0.0, 1.0],
-                          [0.0, 3.12942/xdot, -3.12942, -16.31432]])
-        sys_B = np.array([[0.0, 0.0],
-                          [8.888889, 0.0],
-                          [0.0, 0.0],
-                          [1.368276, 0.0]])
-        sys_C = np.array([[1.0, 0.0, 0.0, 0.0],
-                          [0.0, 0.0, 1.0, 0.0]])
-        sys_control = np.array([[self.delta],
-                                [self.F]])
-        # print("XTE_curr", XTE)
-        sys_output = np.array([[XTE],
-                               [self.wrapAngle(psi) - self.wrapAngle(psi_ref)]]) # y: observation
-        x_est_dot = sys_A @ self.x_est + sys_B @ sys_control + self.Ko @ (sys_output - sys_C@self.x_est)
-        # print("est xdot: ", x_est_dot[0][0], " ", x_est_dot[1][0])
-        self.x_est += delT * x_est_dot
-        sys_control_next = - np.matmul(self.Kc, self.x_est)
-        delta = sys_control_next[0][0]
+
+        # compute e1, e2 e1dot e2dot
+        # compute e1
+        e1 = np.sqrt((X - X_next_ref)**2 + (Y - Y_next_ref)**2)
+        XY_center = np.sqrt((X - self.track_center[0])**2 + (Y - self.track_center[1])**2)
+        XY_ref_center = np.sqrt((trajectory[nn_idx][0] - self.track_center[0])**2 + (trajectory[nn_idx][1] - self.track_center[1])**2)
+        # XY_ref_center = np.sqrt((X_next_ref - self.track_center[0])**2 + (Y_next_ref - self.track_center[1])**2)
+
+        if XY_ref_center > XY_center:
+            print("vehicle inside[car, ref]", XY_center, " ",  XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
+            e1 *= -1
+        else:
+            print("vehicle outside[car, ref]", XY_center, " ", XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
+        # compute e2
+        e2 = - self.wrapAngle(psi) + self.wrapAngle(psi_ref)
+        e2 = wrapToPi(e2)
+        # compute e1dot
+        e1dot = (e1 - self.error_state[0][0]) / delT
+        # compute e2dot
+        e2dot = (e2 - self.error_state[2][0]) / delT
+        # print("[psi, psi ref] = ", psi, " ", psi_ref)
+        # print("states: ", e1, " ", e2, " ", e1dot, " ", e2dot)
+        # form the error state
+        self.error_state[0][0] = e1
+        self.error_state[1][0] = e1dot
+        self.error_state[2][0] = e2
+        self.error_state[3][0] = e2dot
+
+        sys_control_next = np.matmul(self.Kc, self.error_state)
+        delta = - sys_control_next[0][0]
         delta = clamp(delta, self.delta_min, self.delta_max)
-        print(delta)
-        # print("est x: ", self.x_est[0][0], " ", self.x_est[2][0])
-        # print("computed input ", sys_control_next[1][0], " ", sys_control_next[0][0])
+        # print(delta)
 
         # ---------------|Longitudinal Controller|-------------------------
         """
@@ -215,7 +216,4 @@ class CustomController(BaseController):
         # print("lateral angle= ", delta, "; longi force= ", F, "; XTE= ", XTE)
 
         # Return all states and calculated control inputs (F, delta)
-
-        self.delta = delta
-        self.F = F
         return X, Y, xdot, ydot, psi, psidot, F, delta
