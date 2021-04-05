@@ -57,7 +57,7 @@ class CustomController(BaseController):
         #                     [0.0, 0.0, 0.0, 0.0]])
         # self.Kc = np.array([[0.0205, 0.113366, -0.891, -0.0588],
         #                     [0.0, 0.0, 0.0, 0.0]])
-        self.Kc = np.array([[0.00087166, 0.085707, -1.17545, -0.53692],
+        self.Kc = np.array([[0.0004, 0.085707, -1.17545, -0.53692],
                             [0.0, 0.0, 0.0, 0.0]])
 
 
@@ -136,6 +136,8 @@ class CustomController(BaseController):
         # straight line boost
         psi_long_ref = math.atan2(Y_long_next_ref - Y, X_long_next_ref - X)
         error_psi_long = self.wrapAngle(psi_long_ref) - self.wrapAngle(psi)
+
+        Kc = self.Kc
         if np.abs(error_psi_long) < 20 * math.pi / 180:  # straight
             # print("straight!")
             longi_scale = 4.0
@@ -148,16 +150,22 @@ class CustomController(BaseController):
             self.lat_look_ahead = 75
         elif np.abs(error_psi_long) < 45 * math.pi / 180:  # curb
             # print("median angle is", np.abs(error_psi_long))
+            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+                           [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.8
             self.kd_x = 50.0
             self.lat_look_ahead = 150
         elif np.abs(error_psi_long) < 85 * math.pi / 180:  # curb
             # print("large angle is", np.abs(error_psi_long))
+            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+                           [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.7
             self.kd_x = 5.0
             self.lat_look_ahead = 180
         else:
             # print("super large angle is", np.abs(error_psi_long))
+            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+                           [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.7
             self.kd_x = 5.0
             self.lat_look_ahead = 200
@@ -194,7 +202,7 @@ class CustomController(BaseController):
         self.error_state[2][0] = e2
         self.error_state[3][0] = e2dot
 
-        sys_control_next = np.matmul(self.Kc, self.error_state)
+        sys_control_next = np.matmul(Kc, self.error_state)
         delta = - sys_control_next[0][0]
         delta = clamp(delta, self.delta_min, self.delta_max)
         # print(delta)
