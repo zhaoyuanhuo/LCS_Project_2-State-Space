@@ -57,7 +57,7 @@ class CustomController(BaseController):
         #                     [0.0, 0.0, 0.0, 0.0]])
         # self.Kc = np.array([[0.0205, 0.113366, -0.891, -0.0588],
         #                     [0.0, 0.0, 0.0, 0.0]])
-        self.Kc = np.array([[0.004, 0.1, -2.5, -0.4],
+        self.Kc = np.array([[0.004, 0.03, -2.5, -0.6],
                             [0.0, 0.0, 0.0, 0.0]])
 
 
@@ -151,14 +151,14 @@ class CustomController(BaseController):
             # print("straight!")
             longi_scale = 4.0
             self.kd_x = 5.0
-            self.lat_look_ahead = 30
+            self.lat_look_ahead = 50
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
             # print("small angle is", np.abs(error_psi_long))
             Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 3.0
             self.kd_x = 100.0
-            self.lat_look_ahead = 75
+            self.lat_look_ahead = 90
         elif np.abs(error_psi_long) < 45 * math.pi / 180:  # curb
             # print("median angle is", np.abs(error_psi_long))
             Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
@@ -172,14 +172,14 @@ class CustomController(BaseController):
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.7
             self.kd_x = 5.0
-            self.lat_look_ahead = 180
+            self.lat_look_ahead = 200
         else:
             # print("super large angle is", np.abs(error_psi_long))
             Kc = np.array([[0.008, 0.0085707, -5.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.7
             self.kd_x = 5.0
-            self.lat_look_ahead = 200
+            self.lat_look_ahead = 250
         # ---------------|Lateral Controller|-------------------------
         """
         Please design your lateral controller below.
