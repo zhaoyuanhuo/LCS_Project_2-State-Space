@@ -52,8 +52,12 @@ class CustomController(BaseController):
         self.delta = 0.0
         self.F = 0.0
 
-        self.Ko = np.array([[387, 37236, 9.48, 1875], [12, 2596, 390, 37793]])
-        self.Kc = np.array([[4603, 1026, -19741, -6602], [0.0, 0.0, 0.0, 0.0]])
+        self.Ko = np.array([[387.4, 11.8987],
+                            [37235.6, 2596.4],
+                            [9.4773, 390.3],
+                            [1875.2, 37792.6]])
+        self.Kc = np.array([[4603, 1026, -19741, -6602],
+                            [0.0, 0.0, 0.0, 0.0]])
 
     def inertial2global(self, x, y, psi):
         # convert (x, y) from inertial frame to global frame
@@ -167,7 +171,8 @@ class CustomController(BaseController):
                           [8.888889, 0],
                           [0, 0,],
                           [1.368276, 0]])
-        sys_C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
+        sys_C = np.array([[1, 0, 0, 0],
+                          [0, 0, 1, 0]])
         sys_control = np.array([[self.delta], [self.F]])
         sys_output = np.array([[XTE], [self.wrapAngle(psi) - self.wrapAngle(psi_ref)]]) # y: observation
 
