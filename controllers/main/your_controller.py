@@ -48,15 +48,25 @@ class CustomController(BaseController):
         self.lat_look_ahead = 80
 
         # lateral
-        self.x_est = np.array([[0], [0], [0], [0]])
+        self.x_est = np.array([[0.0],
+                               [0.0],
+                               [0.0],
+                               [0.0]])
         self.delta = 0.0
         self.F = 0.0
 
-        self.Ko = np.array([[387.4, 11.8987],
-                            [37235.6, 2596.4],
-                            [9.4773, 390.3],
-                            [1875.2, 37792.6]])
-        self.Kc = np.array([[4603, 1026, -19741, -6602],
+        # self.Ko = np.array([[387.4, 11.8987],
+        #                     [37235.6, 2596.4],
+        #                     [9.4773, 390.3],
+        #                     [1875.2, 37792.6]])
+        # self.Kc = np.array([[4603.0, 1026.0, -19741.0, -6602.0],
+        #                     [0.0, 0.0, 0.0, 0.0]])
+
+        self.Ko = np.array([[379.484, 23.695],
+                            [338.779, 86.207],
+                            [11.898, 377.788],
+                            [257.402, 333.149]])
+        self.Kc = np.array([[0.4628, 0.32255, 4.5653, 2.8211],
                             [0.0, 0.0, 0.0, 0.0]])
 
     def inertial2global(self, x, y, psi):
@@ -128,7 +138,7 @@ class CustomController(BaseController):
         Y_long_next_ref = trajectory[nn_long_next_idx][1]
         Xdot_ref = (X_long_next_ref - X) / (delT * long_look_ahead)
         Ydot_ref = (Y_long_next_ref - Y) / (delT * long_look_ahead)
-        xdot_ref, _ = self.global2inertial(Xdot_ref, Ydot_ref, psi)
+        xdot_ref, ydot_ref = self.global2inertial(Xdot_ref, Ydot_ref, psi)
         # state machine
         # straight line boost
         psi_long_ref = math.atan2(Y_long_next_ref - Y, X_long_next_ref - X)
@@ -163,24 +173,30 @@ class CustomController(BaseController):
         Please design your lateral controller below.
         """
         # generate error state for lateral controller
-        sys_A = np.array([[0, 1, 0, 0],
-                          [0, -160/(9*xdot), 160/9, 308/(15*xdot)],
-                          [0, 0, 0, 1],
-                          [0, 3.12942/xdot, -3.12942, -16.31432]])
-        sys_B = np.array([[0, 0],
-                          [8.888889, 0],
-                          [0, 0,],
-                          [1.368276, 0]])
-        sys_C = np.array([[1, 0, 0, 0],
-                          [0, 0, 1, 0]])
-        sys_control = np.array([[self.delta], [self.F]])
-        sys_output = np.array([[XTE], [self.wrapAngle(psi) - self.wrapAngle(psi_ref)]]) # y: observation
-
-        x_est_dot = sys_A * self.x_est + sys_B * sys_control + self.Ko*(sys_output-sys_C*self.x_est)
+        sys_A = np.array([[0.0, 1.0, 0.0, 0.0],
+                          [0.0, -160/(9*xdot), 160/9, 308/(15*xdot)],
+                          [0.0, 0.0, 0.0, 1.0],
+                          [0.0, 3.12942/xdot, -3.12942, -16.31432]])
+        sys_B = np.array([[0.0, 0.0],
+                          [8.888889, 0.0],
+                          [0.0, 0.0],
+                          [1.368276, 0.0]])
+        sys_C = np.array([[1.0, 0.0, 0.0, 0.0],
+                          [0.0, 0.0, 1.0, 0.0]])
+        sys_control = np.array([[self.delta],
+                                [self.F]])
+        # print("XTE_curr", XTE)
+        sys_output = np.array([[XTE],
+                               [self.wrapAngle(psi) - self.wrapAngle(psi_ref)]]) # y: observation
+        x_est_dot = sys_A @ self.x_est + sys_B @ sys_control + self.Ko @ (sys_output - sys_C@self.x_est)
+        # print("est xdot: ", x_est_dot[0][0], " ", x_est_dot[1][0])
         self.x_est += delT * x_est_dot
-        sys_control_next = - self.Kc * self.x_est
+        sys_control_next = - np.matmul(self.Kc, self.x_est)
         delta = sys_control_next[0][0]
         delta = clamp(delta, self.delta_min, self.delta_max)
+        print(delta)
+        # print("est x: ", self.x_est[0][0], " ", self.x_est[2][0])
+        # print("computed input ", sys_control_next[1][0], " ", sys_control_next[0][0])
 
         # ---------------|Longitudinal Controller|-------------------------
         """
