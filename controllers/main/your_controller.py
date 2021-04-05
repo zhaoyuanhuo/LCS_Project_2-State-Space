@@ -57,7 +57,7 @@ class CustomController(BaseController):
         #                     [0.0, 0.0, 0.0, 0.0]])
         # self.Kc = np.array([[0.0205, 0.113366, -0.891, -0.0588],
         #                     [0.0, 0.0, 0.0, 0.0]])
-        self.Kc = np.array([[0.0004, 0.085707, -1.17545, -0.53692],
+        self.Kc = np.array([[0.004, 0.1, -2.5, -0.4],
                             [0.0, 0.0, 0.0, 0.0]])
 
 
@@ -114,11 +114,20 @@ class CustomController(BaseController):
         if nn_lat_next_idx >= len(trajectory) - 1:
             # print("lat near end")
             nn_lat_next_idx = len(trajectory) - 1
-        X_next_ref = trajectory[nn_lat_next_idx][0]
-        Y_next_ref = trajectory[nn_lat_next_idx][1]
+
+        X_next_ref = 0.0
+        Y_next_ref = 0.0
+        cnt = 0
+        for i in range(nn_idx, nn_lat_next_idx):
+            cnt += 1
+            X_next_ref += trajectory[nn_lat_next_idx][0]
+            Y_next_ref += trajectory[nn_lat_next_idx][1]
+        X_next_ref /= cnt
+        Y_next_ref /= cnt
+        # X_next_ref = trajectory[nn_lat_next_idx][0]
+        # Y_next_ref = trajectory[nn_lat_next_idx][1]
         psi_ref = math.atan2(Y_next_ref - Y, X_next_ref - X)
         speed_scale = 1.1
-        longi_scale = 1.0
 
         # longitude lookahead
         #   1. comparing with current psi, to determine if there is a curb ahead
@@ -145,6 +154,8 @@ class CustomController(BaseController):
             self.lat_look_ahead = 30
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
             # print("small angle is", np.abs(error_psi_long))
+            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+                           [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 3.0
             self.kd_x = 100.0
             self.lat_look_ahead = 75
@@ -157,14 +168,14 @@ class CustomController(BaseController):
             self.lat_look_ahead = 150
         elif np.abs(error_psi_long) < 85 * math.pi / 180:  # curb
             # print("large angle is", np.abs(error_psi_long))
-            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+            Kc = np.array([[0.006, 0.0085707, -4.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.7
             self.kd_x = 5.0
             self.lat_look_ahead = 180
         else:
             # print("super large angle is", np.abs(error_psi_long))
-            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+            Kc = np.array([[0.008, 0.0085707, -5.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.7
             self.kd_x = 5.0
@@ -183,11 +194,12 @@ class CustomController(BaseController):
         # XY_ref_center = np.sqrt((X_next_ref - self.track_center[0])**2 + (Y_next_ref - self.track_center[1])**2)
 
         if XY_ref_center > XY_center:
-            print("vehicle inside[car, ref]", XY_center, " ",  XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
+            # print("vehicle inside[car, ref]", XY_center, " ",  XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
             e1 *= -1
-        else:
-            print("vehicle outside[car, ref]", XY_center, " ", XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
+        # else:
+        #     print("vehicle outside[car, ref]", XY_center, " ", XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
         # compute e2
+        print("XTE=", XTE, "; lookahead=", self.lat_look_ahead)
         e2 = - self.wrapAngle(psi) + self.wrapAngle(psi_ref)
         e2 = wrapToPi(e2)
         # compute e1dot
