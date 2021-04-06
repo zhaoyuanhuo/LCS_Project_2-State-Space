@@ -183,9 +183,9 @@ class CustomController(BaseController):
             Kc = np.array([[0.006, 0.0085707, -4.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.8
-            self.kd_x = 100.0
+            self.kd_x = 2.0
             self.lat_look_ahead = 100
-        elif np.abs(error_psi_long) < 50 * math.pi / 180:  # medium
+        elif np.abs(error_psi_long) < 55 * math.pi / 180:  # medium
             # print("median angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
@@ -201,7 +201,7 @@ class CustomController(BaseController):
             self.cnt_large_angle += 1
             self.XTE_large_angle += XTE
 
-            Kc = np.array([[0.006, 0.00085707, -5.17545, -0.0353692],
+            Kc = np.array([[0.008, 0.00085707, -5.17545, -0.0353692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.5
             self.kd_x = 0.0
