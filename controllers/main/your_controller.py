@@ -146,7 +146,8 @@ class CustomController(BaseController):
         # X_next_ref = trajectory[nn_lat_next_idx][0]
         # Y_next_ref = trajectory[nn_lat_next_idx][1]
         psi_ref = math.atan2(Y_next_ref - Y, X_next_ref - X)
-        speed_scale = 1.1
+        speed_scale = 1.0
+        longi_scale = 1.0
 
         # longitude lookahead
         #   1. comparing with current psi, to determine if there is a curb ahead
@@ -173,23 +174,23 @@ class CustomController(BaseController):
 
             longi_scale = 4.0
             self.kd_x = 5.0
-            self.lat_look_ahead = 50
+            self.lat_look_ahead = 80
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
             # print("small angle is", np.abs(error_psi_long))
             self.cnt_small_angle += 1
             self.XTE_small_angle += XTE
 
-            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+            Kc = np.array([[0.006, 0.0085707, -4.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 3.0
+            longi_scale = 2.0
             self.kd_x = 100.0
-            self.lat_look_ahead = 90
+            self.lat_look_ahead = 120
         elif np.abs(error_psi_long) < 45 * math.pi / 180:  # medium
             # print("median angle is", np.abs(error_psi_long))
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
 
-            Kc = np.array([[0.006, 0.00085707, -4.17545, -0.0453692],
+            Kc = np.array([[0.006, 0.00085707, -5.17545, -0.0453692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 0.3
             self.kd_x = 0.0
@@ -205,7 +206,7 @@ class CustomController(BaseController):
             longi_scale = 0.3
             self.kd_x = 0.0
             self.long_look_ahead = 650
-            self.lat_look_ahead = 200
+            self.lat_look_ahead = 180
         else:
             # print("super large angle is", np.abs(error_psi_long))
             self.cnt_super_large_angle += 1
@@ -216,7 +217,7 @@ class CustomController(BaseController):
             longi_scale = 0.3
             self.kd_x = 0.0
             self.long_look_ahead = 650
-            self.lat_look_ahead = 250
+            self.lat_look_ahead = 220
         # ---------------|Lateral Controller|-------------------------
         """
         Please design your lateral controller below.
