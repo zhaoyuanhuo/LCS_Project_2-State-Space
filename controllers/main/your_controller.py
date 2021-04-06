@@ -206,7 +206,7 @@ class CustomController(BaseController):
             longi_scale = 0.3
             self.kd_x = 0.0
             self.long_look_ahead = 650
-            self.lat_look_ahead = 180
+            self.lat_look_ahead = 200
         else:
             # print("super large angle is", np.abs(error_psi_long))
             self.cnt_super_large_angle += 1
@@ -217,7 +217,7 @@ class CustomController(BaseController):
             longi_scale = 0.3
             self.kd_x = 0.0
             self.long_look_ahead = 650
-            self.lat_look_ahead = 220
+            self.lat_look_ahead = 200
         # ---------------|Lateral Controller|-------------------------
         """
         Please design your lateral controller below.
