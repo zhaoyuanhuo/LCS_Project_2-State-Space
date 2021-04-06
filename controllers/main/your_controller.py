@@ -190,9 +190,9 @@ class CustomController(BaseController):
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
 
-            Kc = np.array([[0.006, 0.00085707, -5.17545, -0.0453692],
+            Kc = np.array([[0.008, 0.00085707, -5.17545, -0.0453692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.3
+            longi_scale = 0.5
             self.kd_x = 0.0
             self.long_look_ahead = 650
             self.lat_look_ahead = 150
@@ -203,7 +203,7 @@ class CustomController(BaseController):
 
             Kc = np.array([[0.006, 0.00085707, -5.17545, -0.0353692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.3
+            longi_scale = 0.5
             self.kd_x = 0.0
             self.long_look_ahead = 650
             self.lat_look_ahead = 200
@@ -214,7 +214,7 @@ class CustomController(BaseController):
 
             Kc = np.array([[0.008, 0.00085707, -6.17545, -0.023692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.3
+            longi_scale = 0.5
             self.kd_x = 0.0
             self.long_look_ahead = 650
             self.lat_look_ahead = 200
