@@ -57,8 +57,19 @@ class CustomController(BaseController):
         #                     [0.0, 0.0, 0.0, 0.0]])
         # self.Kc = np.array([[0.0205, 0.113366, -0.891, -0.0588],
         #                     [0.0, 0.0, 0.0, 0.0]])
-        self.Kc = np.array([[0.004, 0.03, -2.5, -0.6],
+        self.Kc = np.array([[0.005, 0.015, -2.5, -0.75],
                             [0.0, 0.0, 0.0, 0.0]])
+
+        self.XTE_straight = 0.0
+        self.XTE_small_angle = 0.0
+        self.XTE_medium_angle = 0.0
+        self.XTE_large_angle = 0.0
+        self.XTE_super_large_angle = 0.0
+        self.cnt_straight = 0.001
+        self.cnt_small_angle = 0.001
+        self.cnt_medium_angle = 0.001
+        self.cnt_large_angle = 0.001
+        self.cnt_super_large_angle= 0.001
 
 
     def inertial2global(self, x, y, psi_):
@@ -85,6 +96,14 @@ class CustomController(BaseController):
 
     def wrapAngle(self, theta):
         return (theta + 2 * math.pi) % (2 * math.pi)
+
+    def performance_printout(self):
+        print("[straight, small, med, large, superlarge] = [",
+              self.XTE_straight/self.cnt_straight, ", ",
+              self.XTE_small_angle/self.cnt_small_angle, ", ",
+              self.XTE_medium_angle/self.cnt_medium_angle, ", ",
+              self.XTE_large_angle/self.cnt_large_angle, ", ",
+              self.XTE_super_large_angle/self.cnt_super_large_angle, "]")
 
     def update(self, timestep):
 
@@ -149,36 +168,54 @@ class CustomController(BaseController):
         Kc = self.Kc
         if np.abs(error_psi_long) < 20 * math.pi / 180:  # straight
             # print("straight!")
+            self.cnt_straight += 1
+            self.XTE_straight += XTE
+
             longi_scale = 4.0
             self.kd_x = 5.0
             self.lat_look_ahead = 50
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
             # print("small angle is", np.abs(error_psi_long))
+            self.cnt_small_angle += 1
+            self.XTE_small_angle += XTE
+
             Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
                            [0.0, 0.0, 0.0, 0.0]])
             longi_scale = 3.0
             self.kd_x = 100.0
             self.lat_look_ahead = 90
-        elif np.abs(error_psi_long) < 45 * math.pi / 180:  # curb
+        elif np.abs(error_psi_long) < 45 * math.pi / 180:  # medium
             # print("median angle is", np.abs(error_psi_long))
-            Kc = np.array([[0.004, 0.0085707, -3.17545, -0.053692],
+            self.cnt_medium_angle += 1
+            self.XTE_medium_angle += XTE
+
+            Kc = np.array([[0.006, 0.00085707, -4.17545, -0.0453692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.8
-            self.kd_x = 50.0
+            longi_scale = 0.3
+            self.kd_x = 0.0
+            self.long_look_ahead = 650
             self.lat_look_ahead = 150
         elif np.abs(error_psi_long) < 85 * math.pi / 180:  # curb
             # print("large angle is", np.abs(error_psi_long))
-            Kc = np.array([[0.006, 0.0085707, -4.17545, -0.053692],
+            self.cnt_large_angle += 1
+            self.XTE_large_angle += XTE
+
+            Kc = np.array([[0.006, 0.00085707, -5.17545, -0.0353692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.7
-            self.kd_x = 5.0
+            longi_scale = 0.3
+            self.kd_x = 0.0
+            self.long_look_ahead = 650
             self.lat_look_ahead = 200
         else:
             # print("super large angle is", np.abs(error_psi_long))
-            Kc = np.array([[0.008, 0.0085707, -5.17545, -0.053692],
+            self.cnt_super_large_angle += 1
+            self.XTE_super_large_angle += XTE
+
+            Kc = np.array([[0.008, 0.00085707, -6.17545, -0.023692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.7
-            self.kd_x = 5.0
+            longi_scale = 0.3
+            self.kd_x = 0.0
+            self.long_look_ahead = 650
             self.lat_look_ahead = 250
         # ---------------|Lateral Controller|-------------------------
         """
@@ -199,7 +236,7 @@ class CustomController(BaseController):
         # else:
         #     print("vehicle outside[car, ref]", XY_center, " ", XY_ref_center, "; ", self.lat_look_ahead, "; speed ", xdot)
         # compute e2
-        print("XTE=", XTE, "; lookahead=", self.lat_look_ahead)
+        # print("XTE=", XTE, "; lookahead=", self.lat_look_ahead)
         e2 = - self.wrapAngle(psi) + self.wrapAngle(psi_ref)
         e2 = wrapToPi(e2)
         # compute e1dot
@@ -234,6 +271,10 @@ class CustomController(BaseController):
         # print("ref v= ", xdot_ref, "; real v= ", xdot)
         # print("ref angle= ", psi_ref, "; real angle= ", psi)
         # print("lateral angle= ", delta, "; longi force= ", F, "; XTE= ", XTE)
+
+        # performance printout
+        self.performance_printout()
+
 
         # Return all states and calculated control inputs (F, delta)
         return X, Y, xdot, ydot, psi, psidot, F, delta
