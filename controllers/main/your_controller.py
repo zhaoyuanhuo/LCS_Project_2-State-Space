@@ -185,7 +185,7 @@ class CustomController(BaseController):
             longi_scale = 0.8
             self.kd_x = 100.0
             self.lat_look_ahead = 100
-        elif np.abs(error_psi_long) < 45 * math.pi / 180:  # medium
+        elif np.abs(error_psi_long) < 50 * math.pi / 180:  # medium
             # print("median angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
