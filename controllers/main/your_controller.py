@@ -44,7 +44,7 @@ class CustomController(BaseController):
         self.sum_error_psi = 0.0
         self.error_psi_old = 0.0
 
-        self.long_look_ahead = 600
+        self.long_look_ahead = 650
         self.lat_look_ahead = 80
 
         # lateral
@@ -168,7 +168,7 @@ class CustomController(BaseController):
 
         Kc = self.Kc
         if np.abs(error_psi_long) < 20 * math.pi / 180:  # straight
-            # print("straight!")
+            print("straight!")
             self.cnt_straight += 1
             self.XTE_straight += XTE
 
@@ -176,7 +176,7 @@ class CustomController(BaseController):
             self.kd_x = 5.0
             self.lat_look_ahead = 80
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
-            # print("small angle is", np.abs(error_psi_long))
+            print("small angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_small_angle += 1
             self.XTE_small_angle += XTE
 
@@ -186,7 +186,7 @@ class CustomController(BaseController):
             self.kd_x = 100.0
             self.lat_look_ahead = 120
         elif np.abs(error_psi_long) < 45 * math.pi / 180:  # medium
-            # print("median angle is", np.abs(error_psi_long))
+            print("median angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
 
@@ -197,7 +197,7 @@ class CustomController(BaseController):
             self.long_look_ahead = 650
             self.lat_look_ahead = 150
         elif np.abs(error_psi_long) < 85 * math.pi / 180:  # curb
-            # print("large angle is", np.abs(error_psi_long))
+            print("large angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_large_angle += 1
             self.XTE_large_angle += XTE
 
@@ -208,7 +208,7 @@ class CustomController(BaseController):
             self.long_look_ahead = 650
             self.lat_look_ahead = 200
         else:
-            # print("super large angle is", np.abs(error_psi_long))
+            print("super large angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_super_large_angle += 1
             self.XTE_super_large_angle += XTE
 
@@ -274,7 +274,7 @@ class CustomController(BaseController):
         # print("lateral angle= ", delta, "; longi force= ", F, "; XTE= ", XTE)
 
         # performance printout
-        self.performance_printout()
+        # self.performance_printout()
 
 
         # Return all states and calculated control inputs (F, delta)
