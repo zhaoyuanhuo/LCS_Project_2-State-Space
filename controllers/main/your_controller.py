@@ -214,23 +214,23 @@ class CustomController(BaseController):
             self.cnt_large_angle += 1
             self.XTE_large_angle += XTE
 
-            Kc = np.array([[0.008, 0.00085707, -5.17545, -0.0353692],
+            Kc = np.array([[0.01, 0.00085707, -6.17545, -0.0353692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.5
+            longi_scale = 0.2
             self.kd_x = 0.0
             self.long_look_ahead = 650
-            self.lat_look_ahead = 200
+            self.lat_look_ahead = 190
         else:
             # print("super large angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_super_large_angle += 1
             self.XTE_super_large_angle += XTE
 
-            Kc = np.array([[0.008, 0.00085707, -6.17545, -0.023692],
+            Kc = np.array([[0.012, 0.00085707, -7.17545, -0.023692],
                            [0.0, 0.0, 0.0, 0.0]])
-            longi_scale = 0.5
+            longi_scale = 0.2
             self.kd_x = 0.0
             self.long_look_ahead = 650
-            self.lat_look_ahead = 200
+            self.lat_look_ahead = 190
         # ---------------|Lateral Controller|-------------------------
         """
         Please design your lateral controller below.
