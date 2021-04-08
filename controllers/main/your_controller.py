@@ -175,7 +175,7 @@ class CustomController(BaseController):
             longi_scale = 4.0
             self.kd_x = 5.0
             self.long_look_ahead = 700
-            self.lat_look_ahead = 60
+            self.lat_look_ahead = 50
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
             # print("small angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_small_angle += 1
