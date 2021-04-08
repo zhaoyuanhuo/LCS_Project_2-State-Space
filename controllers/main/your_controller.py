@@ -146,7 +146,7 @@ class CustomController(BaseController):
         # X_next_ref = trajectory[nn_lat_next_idx][0]
         # Y_next_ref = trajectory[nn_lat_next_idx][1]
         psi_ref = math.atan2(Y_next_ref - Y, X_next_ref - X)
-        speed_scale = 1.0
+        speed_scale = 1.1
         longi_scale = 1.0
 
         # longitude lookahead
@@ -174,6 +174,7 @@ class CustomController(BaseController):
 
             longi_scale = 4.0
             self.kd_x = 5.0
+            self.long_look_ahead = 700
             self.lat_look_ahead = 60
         elif np.abs(error_psi_long) < 30 * math.pi / 180:  # curb
             # print("small angle is", np.abs(error_psi_long)*180/math.pi)
@@ -186,7 +187,7 @@ class CustomController(BaseController):
             self.kd_x = 2.0
             self.lat_look_ahead = 100
         elif np.abs(error_psi_long) < 45 * math.pi / 180:  # medium
-            print("median angle is", np.abs(error_psi_long)*180/math.pi)
+            # print("median angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
 
@@ -197,7 +198,7 @@ class CustomController(BaseController):
             self.long_look_ahead = 650
             self.lat_look_ahead = 125
         elif np.abs(error_psi_long) < 55 * math.pi / 180:  # medium
-            print("median-large angle is", np.abs(error_psi_long)*180/math.pi)
+            # print("median-large angle is", np.abs(error_psi_long)*180/math.pi)
             self.cnt_medium_angle += 1
             self.XTE_medium_angle += XTE
 
